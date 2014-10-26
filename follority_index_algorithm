@@ -1,0 +1,74 @@
+library(twitteR)
+library(ROAuth)
+library(RCurl)
+library(sqldf)
+library(ggplot2)
+#create a Twitter session
+request_URL = "https://api.twitter.com/oauth/request_token"
+access_URL = "https://api.twitter.com/oauth/access_token"
+auth_URL = "https://api.twitter.com/oauth/authorize"
+consumer_key = "IswliiIlRcQbVAeOVfDmXY9mF"
+consumer_secret = "GLQiShn9gkMYJOCWVlQwwVQbC8jiKaviMfeT8aslcRjByGHjt6"
+credential = OAuthFactory$new(consumerKey=consumer_key,
+                         consumerSecret=consumer_secret,
+                         requestURL=request_URL,
+                         accessURL=access_URL, 
+                         authURL=auth_URL)
+'credential$handshake(cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl") )'
+
+'registerTwitterOAuth(credential)'
+'save(credential, file="twitter authentication.Rdata")'
+# Future use
+load("twitter authentication.Rdata")
+registerTwitterOAuth(credential)
+
+#define the account
+user = getUser("FrancescaFVD ")
+
+#get account follower
+follower_list = list(user$getFollowers())
+follower_sublist = follower_list[[1]]
+follower_sublist= twListToDF(follower_sublist)
+follower_sublist= c(follower_sublist$screenName)
+#define single_followity function
+single_followity_calculator = function(follower){
+  #assign tweets to a dataframe
+  #handle protected accounts
+  follower_user = getUser(follower)
+  if (follower_user$getProtected() ==TRUE){0}
+  else{
+  tweets_list = userTimeline(follower, n =100,includeRts =TRUE)
+  #handle zero-tweets
+  if (length(tweets_list)==0|follower_user$getProtected()==TRUE){0}
+  else{
+  tweets_data_frame = twListToDF(tweets_list)
+  #create a new column getting month from created column
+  temporary = as.POSIXlt(tweets_data_frame$created)
+  tweets_data_frame$month = temporary$mon +1
+  #reshape dataframe creating total number of tweets per month
+  tweets_month_count = sqldf("SELECT month, Count(text) AS total_month FROM tweets_data_frame GROUP BY month;")
+  #define geometric mean, from http://stackoverflow.com/questions/2602583/geometric-mean-is-there-a-built-in
+  gm_mean = function(x, na.rm=TRUE){
+    exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  }
+  #calculate the geometrical mean for the follower
+  gm_mean(tweets_month_count$total_month)
+  } 
+  }
+}
+
+mine_followity_df = data.frame("mine_followity_vector" = t(data.frame( lapply(follower_sublist,single_followity_calculator))),
+                               "follower"=follower_sublist)
+
+#define total_followity function
+total_followity_calculator = function (single_followity_list){
+  mean(single_followity_list)
+}
+#calculate total_followity_function
+total_followity_calculator(mine_followity_df[,1])
+#plot
+followity_plot_hist = qplot(mine_followity_vector, data=mine_followity_df, geom="histogram")
+followity_barplot = ggplot(mine_followity_df,aes(x=as.character(follower), y = mine_followity_vector,fill =mine_followity_vector))+ geom_bar(stat = "identity", position = "stack")
+
+save(credential,single_followity_calculator,total_followity_calculator, file="followity_toolkit.Rdata")
+
