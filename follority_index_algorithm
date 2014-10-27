@@ -8,7 +8,7 @@ request_URL = "https://api.twitter.com/oauth/request_token"
 access_URL = "https://api.twitter.com/oauth/access_token"
 auth_URL = "https://api.twitter.com/oauth/authorize"
 consumer_key = "IswliiIlRcQbVAeOVfDmXY9mF"
-consumer_secret = "GLQiShn9gkMYJOCWVlQwwVQbC8jiKaviMfeT8aslcRjByGHjt6"
+consumer_secret = "-------------------------------------------" #your secret key here
 credential = OAuthFactory$new(consumerKey=consumer_key,
                          consumerSecret=consumer_secret,
                          requestURL=request_URL,
